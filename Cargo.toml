@@ -1,6 +1,6 @@
 [package]
-name = "csv2json"
-version = "0.1.0"
+name = "csv2json-easy"
+version = "0.2.1"
 authors = ["hgfkeep <hgfkeep@gmail.com>"]
 edition = "2018"
 description = "a binary tools in command line for converting ccsv to json"
