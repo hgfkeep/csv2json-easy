@@ -7,25 +7,34 @@ use std::{fs, io};
 
 /// convert csv::Reader to json object map
 /// csv::Reader is an abstract input object, represent for input both from stdin or csv file.
-/// 
+///
 fn csv_to_json<R: std::io::Read>(
-    rdr: &mut Reader<R>,limit: Option<usize> ,offset: Option<usize>
+    rdr: &mut Reader<R>,
+    limit: Option<usize>,
+    offset: Option<usize>,
 ) -> Result<Vec<HashMap<String, String>>, Box<dyn Error>> {
     let header: StringRecord = (rdr.headers()?).clone();
 
     let mut res: Vec<HashMap<String, String>> = Vec::new();
 
-    //combination use iterator skip and take simulate limit and offset.
-    for record in rdr.records().skip(offset.unwrap_or(0)).take(limit.unwrap_or(usize::max_value())) {
+    let n: usize = limit.unwrap_or(usize::max_value());
+    let s: usize = offset.unwrap_or(0);
 
-        if let Ok(r) = record {
-            let map: HashMap<String, String> = header
-                .clone()
-                .into_iter()
-                .map(|s| s.to_owned())
-                .zip(r.into_iter().map(|s| s.to_owned()))
-                .collect();
-            res.push(map);
+    for record in rdr.records().skip(s).take(n) {
+        match record {
+            Ok(r) => {
+                let map: HashMap<String, String> = header
+                    .clone()
+                    .into_iter()
+                    .map(|s| s.to_owned())
+                    .zip(r.into_iter().map(|s| s.to_owned()))
+                    .collect();
+                res.push(map);
+            }
+            Err(e) => {
+                //throw error, avoid swollow error！
+                return Err(Box::new(e));
+            }
         }
     }
 
@@ -56,7 +65,7 @@ fn main() -> io::Result<()> {
         )
         .arg(
             Arg::with_name("input_csv")
-                .short("f")
+                .short("i")
                 .long("input-file")
                 .help("input csv file path, either input_csv or stdin_csv is required!")
                 .conflicts_with("stdin_csv")
@@ -70,16 +79,24 @@ fn main() -> io::Result<()> {
                 .help("result json file path"),
         )
         .arg(Arg::from_usage("-p, --pretty 'output json pretty format'"))
-        .arg(Arg::from_usage("-l, --limit 'output ${limit}json objects with '")
-            .takes_value(true).min_values(0).max_values(i32::max_value() as u64)
+        .arg(
+            Arg::from_usage("-l, --limit 'output ${limit}json objects with '")
+                .takes_value(true)
+                .min_values(0)
+                .max_values(i32::max_value() as u64),
         )
-        .arg(Arg::from_usage("-s, --offset 'output json objects start from ${offset}'")
-            .takes_value(true).default_value("0").min_values(0).max_values(i32::max_value() as u64)
+        .arg(
+            Arg::from_usage("-s, --offset 'output json objects start from ${offset}'")
+                .takes_value(true)
+                .default_value("0")
+                .min_values(0)
+                .max_values(i32::max_value() as u64),
         )
         .arg(
             Arg::with_name("stdin_csv")
                 .help("stdin csv content, either input_csv or stdin_csv is required!")
                 .conflicts_with("input_csv")
+                .required_unless("input_csv")
                 .takes_value(true),
         )
         .get_matches();
@@ -99,12 +116,12 @@ fn main() -> io::Result<()> {
     }
 
     let mut limit: Option<usize> = None;
-    if let Some(l) = matches.value_of("limit"){
+    if let Some(l) = matches.value_of("limit") {
         limit = Some(usize::from_str_radix(l, 10).expect("limit input error!"));
     }
 
     let mut offset: Option<usize> = None;
-    if let Some(s) = matches.value_of("offset"){
+    if let Some(s) = matches.value_of("offset") {
         offset = Some(usize::from_str_radix(s, 10).expect("offset input error!"));
     }
 
@@ -130,24 +147,29 @@ fn main() -> io::Result<()> {
         list = csv_to_json(&mut rdr, limit, offset);
     }
 
-    if let Ok(list_objects) = list {
-
-        let json = if pretty {
-            serde_json::to_string_pretty(&list_objects)?
-        } else {
-            serde_json::to_string(&list_objects)?
-        };
-        if let Some(mut w) = writer {
-            write_json(&mut w, json)?;
-            if verbose {
-                println!(
-                    "output json file (records: {}) : {:?}",
-                    list_objects.len(),
-                    matches.value_of("output_json")
-                );
+    match list {
+        Ok(list_objects) => {
+            let json = if pretty {
+                serde_json::to_string_pretty(&list_objects)?
+            } else {
+                serde_json::to_string(&list_objects)?
+            };
+            if let Some(mut w) = writer {
+                write_json(&mut w, json)?;
+                if verbose {
+                    println!(
+                        "output json file (records: {}) : {:?}",
+                        list_objects.len(),
+                        matches.value_of("output_json")
+                    );
+                }
+            } else {
+                write_json(&mut io::stdout(), json)?;
             }
-        } else {
-            write_json(&mut io::stdout(), json)?;
+        }
+        Err(e) => {
+            println!("Error: {:?}", e);
+            return Ok(());
         }
     }
     Ok(())
