@@ -45,6 +45,8 @@ fn csv_to_json<R: std::io::Read>(
 /// if writer is oi::stdout() , then it write to stdout
 /// if writer is some io::BufWriter, then it will writer to a file
 /// you can alse complement yourself writer to write to specifica place
+/// 
+/// 
 fn write_json<W: std::io::Write>(writer: &mut W, json: String) -> io::Result<()> {
     writer.write(&json.into_bytes())?;
     writer.flush()?;
@@ -53,9 +55,9 @@ fn write_json<W: std::io::Write>(writer: &mut W, json: String) -> io::Result<()>
 
 fn main() -> io::Result<()> {
     // cli args parser with clap
-    let matches = App::new("convert csv to json format")
+    let matches = App::new("csv2json-simple")
         .author("heguangfu")
-        .about("csv to json tools")
+        .about("csv to json tools, easy to use ")
         .version("0.0.1")
         .arg(
             Arg::with_name("verbose")
