@@ -4,7 +4,11 @@ version = "0.2.1"
 authors = ["hgfkeep <hgfkeep@gmail.com>"]
 edition = "2018"
 description = "a binary tools in command line for converting ccsv to json"
-repository = ""
+repository = "https://github.com/hgfkeep/csv2json-easy"
+documentation = "https://github.com/hgfkeep/csv2json-easy"
+readme = "README.md"
+keywords = ["csv2json", "csv", "json", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
